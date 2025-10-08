@@ -145,3 +145,82 @@ This cheat sheet covers **90% of SQL interview tasks**:
 2. Aggregates & group analysis  
 3. Window functions for ranking, trends, rolling metrics  
 
+
+Biz cases:
+
+---
+
+## 🏢 Business Scenarios  
+
+### 🎯 Customer Retention (Rolling Average)
+```sql
+select customer_id,
+       avg(spend) over (
+         partition by customer_id
+         order by transaction_date
+         rows between 6 preceding and current row
+       ) as rolling_avg_7
+from transactions;
+```
+👉 Identify VIPs whose spend is increasing every 6 months.  
+
+---
+
+### 🏆 Top-N Employees by Department
+```sql
+with ranked as (
+  select employee_id, department_id, salary,
+         dense_rank() over (partition by department_id order by salary desc) as rnk
+  from employees
+)
+select * from ranked where rnk <= 3;
+```
+👉 Get top 3 paid employees in each department.  
+
+---
+
+### 📊 CTR Calculation
+```sql
+select app_id,
+       round(100.0 * sum(case when event_type='click' then 1 else 0 end) /
+             nullif(sum(case when event_type='impression' then 1 else 0 end),0),2) as ctr
+from events
+where extract(year from timestamp)=2022
+group by app_id;
+```
+👉 Marketing KPI: Click-through rate per app.  
+
+---
+
+### 🛒 Basket Analysis (Product Combos)
+```sql
+select transaction_id, array_agg(product_id) as products
+from transactions
+group by transaction_id;
+```
+👉 See which products are often purchased together.  
+
+---
+
+### 📈 Salary Benchmarking
+```sql
+select distinct salary as second_highest_salary
+from (
+  select salary, dense_rank() over (order by salary desc) as rnk
+  from employees
+) t
+where rnk = 2;
+```
+👉 HR: Find the **second highest salary** without duplicates.  
+
+---
+
+### 📅 Employee Performance Trend
+```sql
+select employee_id, month, sales,
+       sales - lag(sales,1) over (partition by employee_id order by month) as diff_from_prev
+from performance;
+```
+👉 See how each employee’s sales changed month-over-month.  
+
+---
